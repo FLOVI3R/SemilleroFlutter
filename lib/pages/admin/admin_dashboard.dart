@@ -9,26 +9,43 @@ import '../../models/User.dart';
 
 class admin_dashboard extends StatefulWidget {
   final String token;
-  const admin_dashboard(this.token);
+  const admin_dashboard(this.token, {super.key});
 
   @override
   State<admin_dashboard> createState() => _admin_dashboard_State();
 }
+List<User> userList = <User>[];
 
 class _admin_dashboard_State extends State<admin_dashboard>{
-  List<User> userList = <User>[];
 
   Future<List<User>> getUserList() async {
     var url = 'http://semillero.allsites.es/public/api/users';
-    var response = await http.get(Uri.parse(url), headers: {HttpHeaders.acceptHeader: "application/json;charset=UTF-8", HttpHeaders.contentTypeHeader: "application/json;charset=UTF-8", HttpHeaders.authorizationHeader: widget.token}).timeout(Duration(seconds: 90));
-    print(response.body);
-    Map<String,dynamic> map = jsonDecode(response.body);
-    print(map);
-    print(response.statusCode);
-    var uList = <User>[];
-
-    print(map);
-    return uList;
+    try{
+      var response = await http.get(Uri.parse(url), headers: {HttpHeaders.acceptHeader: "application/json;charset=UTF-8", HttpHeaders.contentTypeHeader: "application/json;charset=UTF-8", HttpHeaders.authorizationHeader: "Bearer " + widget.token}).timeout(Duration(seconds: 90));
+      Map<String,dynamic> userMap = jsonDecode(response.body);
+      if(response.statusCode == 200) {
+        for(int i = 0; i < userMap.length; i++) {
+          userList.add(User(
+              id: userMap["data"]["id"][i],
+              email: userMap["data"]["email"][i],
+              firstname: userMap["data"]["firstname"][i],
+              secondname: userMap["data"]["secondname"][i],
+              company_id: userMap["data"]["company_id"][i],
+              type: userMap["data"]["type"][i],
+              email_confirmed: userMap["data"]["email_confirmed"][i],
+              deleted: userMap["data"]["deleted"][i],
+              actived: userMap["data"]["actived"][i],
+              iscontact: userMap["data"]["iscontact"][i],
+              company: userMap["data"]["company"][i],
+              created_at: userMap["data"]["created_at"][i]));
+          print(userList[i]);
+        }
+        return userList;
+      }
+      return <User>[];
+    }catch(e) {
+      return <User>[];
+    }
   }
 
   Future<void> activateUser() async {
@@ -109,9 +126,9 @@ class _admin_dashboard_State extends State<admin_dashboard>{
   @override
   void initState() {
     super.initState();
-    getUserList().then((value) {
+    getUserList().then((list) {
       setState(() {
-        userList.addAll(value);
+        userList = list;
       });
     });
   }
@@ -122,31 +139,19 @@ class _admin_dashboard_State extends State<admin_dashboard>{
       appBar: AppBar(
         title: Text('Lista de Usuarios'),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-                itemCount: userList.length,
-                itemBuilder: (BuildContext context, int index) {
-                  return Container(
-                    padding: EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: Colors.lightGreen,
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      userList[index].email,
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  );
-                },
-            ),
-          ),
-        ],
+      body: FutureBuilder<List<User>>(
+        future: getUserList(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(
+              child: Text('An error has occurred!'),
+            );
+          } else {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+        },
       ),
     );
   }

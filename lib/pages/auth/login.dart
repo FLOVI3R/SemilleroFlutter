@@ -9,6 +9,7 @@ import 'package:semillero/pages/auth/register.dart';
 import 'package:http/http.dart' as http;
 
 import '../admin/admin_dashboard.dart';
+import '../user/user_opinions.dart';
 
 class login extends StatefulWidget {
   const login({super.key});
@@ -28,16 +29,22 @@ class login extends StatefulWidget {
       var url = 'http://semillero.allsites.es/public/api/login';
       try {
         response = await http.post(Uri.parse(url), headers: {HttpHeaders.acceptHeader: "application/json;charset=UTF-8", HttpHeaders.contentTypeHeader: "application/json;charset=UTF-8"}, body: jsonEncode(user));
-        //print(jsonDecode(response.body));
+        print(jsonDecode(response.body));
       } catch(e) {
         print(e);
       }
       if(response.statusCode == 200) {
         Map<String,dynamic> userMap = jsonDecode(response.body);
-        print(userMap["data"]["token"]);
-        Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => admin_dashboard(userMap["data"]["token"].toString())));
+        String token = userMap["data"]["token"].toString();
+        if(userMap["data"]["type"].toString() == "a") {
+          Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => admin_dashboard(token)));
+        }else {
+          Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => user_opinions(token)));
+        }
       } else {
         passwordController.clear();
       }
